@@ -1,0 +1,241 @@
+---
+title: "Random Walk"
+author: "Enrique Pérez Herrero"
+date: "July 13, 2018"
+output: html_document
+---
+
+# EDA Case Studies
+
+* https://www.itl.nist.gov/div898/handbook/eda/section4/eda4231.htm
+* https://www.itl.nist.gov/div898/handbook/eda/section4/eda4233.r
+
+```{r message=FALSE}
+library(readr)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+library(Hmisc)
+library(latex2exp)
+library(forecast)
+```
+
+	
+## Background and Data
+
+### Generation:
+A random walk can be generated from a set of uniform random numbers by the
+formula: 
+
+$R_{i}= \sum_{i=1}^{j}{(U_{j} − 0.5)}$
+
+where $U$ is a set of uniform random numbers.
+The motivation for studying a set of random walk data is to illustrate the
+effects of a known underlying autocorrelation structure (i.e., non-randomness)
+in the data.
+
+### Data:
+
+```{r}
+# Read data from url
+data_url <- "https://www.itl.nist.gov/div898/handbook/datasets/RANDWALK.DAT"
+skip_lines <- 25
+y <- scan(data_url, skip = skip_lines)
+
+# Random Walk data.frame
+x <- 1:length(y)
+RW <- data.frame(X = x, Y = y)
+```
+
+# Test Underlying Assumptions
+## Goal
+
+The goal of this analysis is threefold:
+
+1. Determine if the univariate model: $Y_{i} = C + E_{i}$ is
+appropriate and valid.
+
+2. Determine if the typical underlying assumptions for an "in control"
+measurement process are valid.
+
+  These assumptions are:
+  
+   + 2.a. Random drawings;    
+   + 2.b. From a fixed distribution;    
+   + 2.c. with the distribution having a fixed location; and     
+   + 2.d. the distribution having a fixed scale.   
+
+3. Determine if the confidence interval: $$\bar{Y} \pm \frac{2s}{\sqrt{N}} $$ is
+appropriate and valid, with $s$ denoting the standard deviation of the original
+data.
+
+
+## 4-Plot of Data
+
+```{r}
+# Generate 4-plot.
+
+# Run Sequence Plot
+plot1 <- ggplot(RW, aes(x = X, y = Y)) +
+  geom_line() +
+  xlab("Run Sequence")
+
+# Lag Plot
+plot2 <- ggplot(RW, aes(x = Y, y = Lag(Y))) +
+  geom_point(size = 0.1, na.rm = TRUE) +
+  xlab(TeX("Y_{i-1}")) +
+  ylab(TeX("Y_i"))
+
+# Histogram
+plot3 <-ggplot(RW, aes(Y)) +
+  geom_histogram(bins = 10, color = "black", fill = "white") +
+  ylab("Frequency")
+
+# Normal Probability Plot
+plot4 <- ggplot(RW, aes(sample = Y)) +
+  stat_qq() +
+  stat_qq_line() +
+  xlab("Theoretical Quantiles") +
+  ylab("Sample Quantiles")
+
+# 4-Plot of Data
+title1 <- textGrob("Random Walk 4-Plot", gp = gpar(fontface = "bold"))
+grid.arrange(plot1, plot2, plot3, plot4, ncol = 2, top = title1)
+```
+
+
+### Interpretation
+The assumptions are addressed by the graphics shown above:
+
+* The run sequence plot (upper left) indicates significant shifts in location
+over time.
+
+* The lag plot (upper right) indicates significant non-randomness in the data.
+
+* When the assumptions of randomness and constant location and scale are not
+satisfied, the distributional assumptions are not meaningful. Therefore we do
+not attempt to make any interpretation of the histogram (lower left) or the
+normal probability plot (lower right). From the above plots, we conclude that
+the underlying assumptions are seriously violated. Therefore the $Y_{i} = C +
+E_{i}$ model is not valid. When the randomness assumption is seriously violated,
+a time series model may be appropriate. The lag plot often suggests a reasonable
+model. For example, in this case the strongly linear appearance of the lag plot
+suggests a model fitting $Y_i$ versus $Y_{i-1}$ might be appropriate. When the
+data are non-random, it is helpful to supplement the lag plot with an
+autocorrelation plot and a spectral plot. Although in this case the lag plot is
+enough to suggest an appropriate model, we provide the autocorrelation and
+spectral plots for comparison.
+
+
+### Autocorrelation Plot
+
+When the lag plot indicates significant non-randomness, it can be helpful to
+follow up with an [autocorrelation plot](https://www.itl.nist.gov/div898/handbook/eda/section3/autocopl.htm).
+
+```{r}
+ggAcf(y, lag.max =  100) +
+  ggtitle("Random Walk: Autocorrelation Plot")
+```
+
+This autocorrelation plot shows significant autocorrelation at lags 1 through
+100 in a linearly decreasing fashion.
+
+
+### Spectral Plot
+Another useful plot for non-random data is the [spectral plot](https://www.itl.nist.gov/div898/handbook/eda/section3/spectrum.htm).
+
+
+```{r}
+## Generate spectral plot.
+z <- spec.pgram(y, kernel, spans = 3, plot = FALSE)
+
+spectral_df <- data.frame(freq = z$freq, spec = z$spec)
+
+ggplot(spectral_df, aes(x = freq, y = spec)) +
+  geom_line() +
+  xlab("Frequency") +
+  ylab("Spectrum")
+```
+
+This spectral plot shows a single dominant low frequency peak.
+
+
+
+## Quantitative Output
+
+Although the 4-plot above clearly shows the violation of the assumptions, we
+supplement the graphical output with some quantitative measures.
+
+```{r}
+## Compute summary statistics.
+ybar <- mean(y)
+std <- sd(y)
+n <- length(y)
+stderr <- std/sqrt(n)
+v <- var(y)
+
+# Compute the five number summary.
+# Tukey Five-Number Summaries
+# min, lower hinge, Median, upper hinge, max
+z <- fivenum(y)
+lhinge <- z[2]
+uhinge <- z[4]
+range_y <- max(y) - min(y)
+
+## Compute the inter-quartile range.
+iqry <- IQR(y)
+
+## Compute the lag 1 autocorrelation.
+z <- acf(y, lag = 1, plot = FALSE)
+ac <- z$acf[2]
+
+## Format results for printing.
+Statistics <- data.frame("Number of Observations" = n,
+                         "Mean" = ybar,
+                         "Std. Dev." = std,
+                         "Std. Dev. of Mean" = stderr,
+                         "Variance" = v,
+                         "Range" = range_y,
+                         "Lower Hinge" = lhinge,
+                         "Upper Hinge" = uhinge,
+                         "Inter-Quartile Range" = iqry, 
+                         "Autocorrelation" = ac,
+                         check.names = FALSE)
+
+Statistics <- t(Statistics)
+colnames(Statistics) <- "Statistics"
+Statistics
+```
+
+```{r}
+summary(y)
+```
+
+We also computed the autocorrelation to be `r round(ac, 3)`, which is
+evidence of a very strong autocorrelation.
+
+## Location
+
+One way to quantify a change in location over time is to fit a straight line to
+the data using an index variable as the independent variable in the regression.
+For our data, we assume that data are in sequential run order and that the data
+were collected at equally spaced time intervals. In our regression, we use the
+index variable $X = 1, 2, ..., N$, where $N$ is the number of observations. If
+there is no significant drift in the location over time, the slope parameter
+should be zero.
+
+```{r}
+regression <- lm(y ~ 1 + x)
+summary(regression)
+
+slope_t_value <- summary(regression)[["coefficients"]][, "t value"][2]
+slope_t_value <- unname(slope_t_value)
+deg_freedom <- regression$df.residual
+```
+
+The t-value of the slope parameter, `r round(slope_t_value, 3)`, is larger than
+the critical value of $t_{0.975, 498}$ = `r qt(0.975, deg_freedom)`. Thus, we
+conclude that the slope is different from zero at the 0.05 significance level.
+
+
+
