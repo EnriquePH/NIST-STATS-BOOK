@@ -237,5 +237,36 @@ The t-value of the slope parameter, `r round(slope_t_value, 3)`, is larger than
 the critical value of $t_{0.975, 498}$ = `r qt(0.975, deg_freedom)`. Thus, we
 conclude that the slope is different from zero at the 0.05 significance level.
 
+## Variation
+
+One simple way to detect a change in variation is with a [Bartlett
+test](https://www.itl.nist.gov/div898/handbook/eda/section3/eda357.htm) after
+dividing the data set into several equal-sized intervals. However, the Bartlett
+test is not robust for non-normality. Since we know this data set is not
+approximated well by the normal distribution, we use the alternative Levene
+test. In particular, we use the [Levene
+test](https://www.itl.nist.gov/div898/handbook/eda/section3/eda35a.htm) based on
+the median rather the mean. The choice of the number of intervals is somewhat
+arbitrary, although values of four or eight are reasonable. We will divide our
+data into four intervals
+
+### Levene Test
+
+```{r}
+# Load the car library, generate an arbitrary interval indicator 
+# variable and run Levene's test.
+library(car)
+
+num_groups <- 4
+groups <- as.factor(rep(1:num_groups, each = n / num_groups))
+
+# Homogeneity of variance across groups
+lev <- leveneTest(y, group = groups)
+lev
+
+## Critical value.
+cat("\nCritical value:", qf(0.95, lev$Df[1], lev$Df[2]))
+```
+
 
 
