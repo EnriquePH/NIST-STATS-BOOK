@@ -250,23 +250,31 @@ the median rather the mean. The choice of the number of intervals is somewhat
 arbitrary, although values of four or eight are reasonable. We will divide our
 data into four intervals
 
+$$ H_{0}: \sigma_{1}^{2} = \sigma_{2}^{2} = \sigma_{3}^{2} = \sigma_{4}^{2}$$
+$$ H_{a}: \text{At least one } \sigma_{i}^{2}  \text{ is not equal to the others.}$$
+
 ### Levene Test
 
 ```{r}
 # Load the car library, generate an arbitrary interval indicator 
 # variable and run Levene's test.
+library(carData)
 library(car)
 
-num_groups <- 4
-groups <- as.factor(rep(1:num_groups, each = n / num_groups))
+k <- 4
+groups <- as.factor(rep(1:k, each = n / k))
 
 # Homogeneity of variance across groups
 lev <- leveneTest(y, group = groups)
 lev
 
 ## Critical value.
-cat("\nCritical value:", qf(0.95, lev$Df[1], lev$Df[2]))
+alpha <- 0.05
+cat("\nCritical value:", qf(1 - alpha, k - 1, n - k))
 ```
 
+```{r}
+n
+```
 
 
