@@ -18,6 +18,7 @@ library(grid)
 library(Hmisc)
 library(latex2exp)
 library(forecast)
+library(lawstat)
 ```
 
 	
@@ -298,4 +299,8 @@ non-randomness, we show the output from a [runs test](https://www.itl.nist.gov/d
  $$H_{0}:  \text{the sequence was produced in a random manner}$$
  
   $$H_{a}:  \text{the sequence was not produced in a random manner}$$
+```{r}
+## library lawstat includes runs test.
+runs.test(y)
+```
 
