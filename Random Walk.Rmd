@@ -269,12 +269,33 @@ lev <- leveneTest(y, group = groups)
 lev
 
 ## Critical value.
+test_statistics <- lev$`F value`[1]
+deg_freedom <- k - 1
 alpha <- 0.05
-cat("\nCritical value:", qf(1 - alpha, k - 1, n - k))
+critical_value <- qf(1 - alpha, k - 1, n - k)
 ```
 
-```{r}
-n
-```
+* Test statistic: `r test_statistics`   
 
+* Degrees of freedom: k - 1 = `r deg_freedom`
+
+* Significance level: $\alpha$ = `r alpha`
+
+* Critical value: $F_{\alpha, k-1, N-k}$ = `r critical_value`
+
+* Critical region: Reject $H_0$ if $W$ > `r critical_value`
+
+In this case, the __Levene test__ indicates that the variances are significantly
+different in the four intervals since the test statistic of `r round(test_statistics, 3)` is greater than the `r 100 * (1 - alpha)`% critical
+value of `r round(critical_value, 3)`. Therefore we conclude that the scale is
+not constant.
+
+### Randomness
+
+Although the lag 1 autocorrelation coefficient above clearly shows the
+non-randomness, we show the output from a [runs test](https://www.itl.nist.gov/div898/handbook/eda/section3/eda35d.htm) as well.
+
+ $$H_{0}:  \text{the sequence was produced in a random manner}$$
+ 
+  $$H_{a}:  \text{the sequence was not produced in a random manner}$$
 
